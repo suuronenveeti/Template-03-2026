@@ -1,83 +1,88 @@
-let lastHTMLHash = "";
-const imageModifiedTimes = new Map();
-const cssModifiedTimes = new Map();
+let fileTimes = new Map();
 
-// Yksinkertainen hash funktio
-function simpleHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) - hash) + str.charCodeAt(i);
-        hash |= 0;
-    }
-    return hash;
+function getCurrentHTML() {
+    return location.pathname.split("/").pop() || "index.html";
 }
 
-// Tarkistaa HTML muutokset ja reloadaa vain jos muuttuu
-async function checkHTML() {
+async function checkFile(file, type, element = null) {
     try {
-        const res = await fetch('index.html', { cache: 'no-store' });
-        const text = await res.text();
-        const hash = simpleHash(text);
+        const res = await fetch(file, { method: "HEAD", cache: "no-store" });
+        const lastMod = res.headers.get("Last-Modified");
+        if (!lastMod) return;
 
-        if (lastHTMLHash && hash !== lastHTMLHash) {
-            console.log("HTML muuttui → reload koko sivu");
-            window.location.reload();
+        const old = fileTimes.get(file);
+
+        if (old && old !== lastMod) {
+            console.log("Muuttui:", file);
+
+            // HTML ja JS → turvallinen reload
+            if (type === "html" || type === "js") {
+                location.reload();
+                return;
+            }
+
+            // CSS → päivitä ilman reloadia
+            if (type === "css" && element) {
+                element.href = file + "?v=" + Date.now();
+            }
+
+            // Kuva → päivitä
+            if (type === "img" && element) {
+                element.src = file + "?v=" + Date.now();
+            }
+
+            // Video → päivitä ja säilytä toistoaika
+            if (type === "video" && element) {
+                const currentTime = element.currentTime;
+                const wasPlaying = !element.paused;
+
+                element.src = file + "?v=" + Date.now();
+                element.load();
+
+                element.addEventListener("loadedmetadata", () => {
+                    element.currentTime = currentTime;
+                    if (wasPlaying) element.play();
+                }, { once: true });
+            }
         }
 
-        lastHTMLHash = hash;
+        fileTimes.set(file, lastMod);
+
     } catch (e) {
-        console.error("HTML tarkistus epäonnistui:", e);
+        console.warn("Tarkistus epäonnistui:", file);
     }
 }
 
-// Päivittää kuvat vain jos tiedosto muuttuu
-async function refreshImages() {
-    const imgs = document.querySelectorAll('img');
-    for (const img of imgs) {
-        const src = img.src.split('?')[0];
-        try {
-            const res = await fetch(src, { method: 'HEAD', cache: 'no-store' });
-            const lastMod = res.headers.get('Last-Modified');
-            if (!lastMod) continue;
+async function loop() {
 
-            const lastTime = imageModifiedTimes.get(img);
-            if (lastTime !== lastMod) {
-                img.src = src + '?v=' + Date.now();
-                imageModifiedTimes.set(img, lastMod);
-            }
-        } catch (e) {
-            console.error("Kuvan HEAD päivitys epäonnistui:", src, e);
-        }
-    }
+    // HTML
+    await checkFile(getCurrentHTML(), "html");
+
+    // CSS
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+        const file = link.getAttribute("href").split("?")[0];
+        checkFile(file, "css", link);
+    });
+
+    // JS
+    document.querySelectorAll('script[src]').forEach(script => {
+        const file = script.getAttribute("src").split("?")[0];
+        checkFile(file, "js");
+    });
+
+    // Kuvat
+    document.querySelectorAll('img').forEach(img => {
+        const file = img.getAttribute("src").split("?")[0];
+        checkFile(file, "img", img);
+    });
+
+    // Videot
+    document.querySelectorAll('video').forEach(video => {
+        const file = video.getAttribute("src")?.split("?")[0];
+        if (file) checkFile(file, "video", video);
+    });
+
+    setTimeout(loop, 1000);
 }
 
-// Päivittää CSS vain jos muuttuu
-async function refreshCSS() {
-    const links = document.querySelectorAll('link[rel="stylesheet"]');
-    for (const link of links) {
-        const href = link.getAttribute('href').split('?')[0];
-        try {
-            const res = await fetch(href, { method: 'HEAD', cache: 'no-store' });
-            const lastMod = res.headers.get('Last-Modified');
-            if (!lastMod) continue;
-
-            const lastTime = cssModifiedTimes.get(link);
-            if (lastTime !== lastMod) {
-                link.href = href + '?v=' + Date.now();
-                cssModifiedTimes.set(link, lastMod);
-            }
-        } catch (e) {
-            console.error("CSS HEAD päivitys epäonnistui:", href, e);
-        }
-    }
-}
-
-// Päälooppi – tarkistaa jatkuvasti, mutta vain oikeasti muuttuneet tiedostot
-async function liveReloadLoop() {
-    await checkHTML();
-    await refreshCSS();
-    await refreshImages();
-    setTimeout(liveReloadLoop, 1000); // 1 sek välein lähes reaaliajassa
-}
-
-liveReloadLoop();
+loop();
