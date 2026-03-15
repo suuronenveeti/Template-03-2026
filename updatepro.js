@@ -1,3 +1,4 @@
+/* (c) 2026 suuronenveeti. Licensed under GPLv3. Credit: https://github.com/suuronenveeti */
 let fileTimes = new Map();
 
 function getCurrentHTML() {
