@@ -6,7 +6,7 @@ A web template created by suuronenveeti.
 
 ## Live demo
 
-https://suuronenveeti.github.io/Template-03-2026/
+https://suuronenveeti.github.io/Just-Another-Lightweight-Web-Template/
 
 ---
 
