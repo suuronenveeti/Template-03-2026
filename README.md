@@ -17,6 +17,7 @@ https://suuronenveeti.github.io/Template-03-2026/
 3. **Styles**: Modify `css/styles.css` to change colors and fonts.
 4. **Assets**: Put your images and videos into the `/assets` folder.
 5. **Linking**: When adding images, use paths like `<img src="assets/your-image.jpg">`.
+6. Always use the index.html as homepage and example.html as other pages with link in index.htnl.
 
 ---
 
