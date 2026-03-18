@@ -5,24 +5,41 @@
   font-weight: 400;
   font-style: normal;
 }
+
+:root {
+  --primary-bg-color: rgb(255, 255, 255);
+  --primary-text-color: rgb(0, 0, 0);
+  --primary-hover-color: rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-bg-color: rgb(0, 0, 0);
+    --primary-text-color: rgb(255, 255, 255);
+    --primary-hover-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
 a {
   display: inline-block;
   color: inherit;
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 1.5px;
-  text-decoration: underline 1px rgb(0, 0, 0);
+  text-decoration: underline 1px var(--primary-text-color);
   text-underline-offset: 4px;
   transition: none;
 }
 
 a:hover {
-  text-decoration: underline 2px currentColor;
-  background-color: rgba(0, 0, 0, 0.05);
+  text-decoration: underline 2px var(--primary-text-color);
+  background-color: var(--primary-hover-color);
 }
 
 body {
   font-family: "Roboto-Regular", Tahoma, sans-serif;
+  background-color: var(--primary-bg-color);
+  color: var(--primary-text-color);
 }
 
 *,
